@@ -107,13 +107,18 @@ def main(_):
     # save normalized score
     normalized_score = [['mean', 'std']]
 
+    # time
+    actor_overall_time = 0.0
+    critic_overall_time = 0.0
   
     for i in tqdm.tqdm(range(1, FLAGS.max_steps + 1),
                        smoothing=0.1,
                        disable=not FLAGS.tqdm):
         batch = dataset.sample(FLAGS.batch_size)
 
-        update_info = agent.update(batch)
+        update_info, actor_time, critic_time = agent.update(batch)
+        actor_overall_time += actor_time
+        critic_overall_time += critic_time
 
         if i % 20000 == 0:
             mean, std, time_eval, query_eval = parallel_simple_eval_policy(agent.actor, FLAGS.env_name, seed = 0)
@@ -144,6 +149,22 @@ def main(_):
             np.savetxt(os.path.join(FLAGS.save_dir, f'{FLAGS.seed}.txt'),
                        eval_returns,
                        fmt=['%d', '%.1f'])
+
+    # save normalized_score
+    filename = os.path.join("./IQL_models", expid, "normalized_score.csv")
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(normalized_score)
+
+    
+            
+    # save time
+    time_list = [['Gradient steps', 'Policy Time', 'Critic Time'], [FLAGS.max_steps, actor_overall_time, critic_overall_time]]
+    file_time = os.path.join("./IQL_models", expid, "training_time.csv")
+    with open(file_time, mode='w', newline='') as file_t:
+        writer = csv.writer(file_t)
+        writer.writerows(time_list)
+
 
 
 if __name__ == '__main__':
