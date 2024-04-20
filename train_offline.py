@@ -77,6 +77,13 @@ def make_env_and_dataset(env_name: str,
 
 
 def main(_):
+    if not os.path.exists("./IQL_models"):
+        os.makedirs("./IQL_models")
+    expid = FLAGS.env_name + '-baseline-seed' + str(FLAGS.seed)
+    run_name = os.path.join("./IQL_models", expid)
+    if not os.path.exists(run_name):
+        os.makedirs(run_name)
+  
     summary_writer = SummaryWriter(os.path.join(FLAGS.save_dir, 'tb',
                                                 str(FLAGS.seed)),
                                    write_to_disk=True)
@@ -92,12 +99,27 @@ def main(_):
                     **kwargs)
 
     eval_returns = []
+
+    # save normalized score
+    normalized_score = [['mean', 'std']]
+
+  
     for i in tqdm.tqdm(range(1, FLAGS.max_steps + 1),
                        smoothing=0.1,
                        disable=not FLAGS.tqdm):
         batch = dataset.sample(FLAGS.batch_size)
 
         update_info = agent.update(batch)
+
+        if i % 20000 == 0:
+            mean, std, time_eval, query_eval = parallel_simple_eval_policy(agent.actor, FLAGS.env_name, seed = 0)
+            normalized_score.append([mean, std])
+            if i >= FLAGS.max_steps:
+                time_eval_record = [['Query times', 'Time'], [query_eval, time_eval]]
+                file_time = os.path.join("./IQL_models", expid, "eval_time.csv")
+                with open(file_time, mode='w', newline='') as file_t:
+                    writer = csv.writer(file_t)
+                    writer.writerows(time_eval_record)
 
         if i % FLAGS.log_interval == 0:
             for k, v in update_info.items():
