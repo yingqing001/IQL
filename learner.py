@@ -13,6 +13,8 @@ from actor import update as awr_update_actor
 from common import Batch, InfoDict, Model, PRNGKey
 from critic import update_q, update_v
 
+import time
+
 
 def target_update(critic: Model, target_critic: Model, tau: float) -> Model:
     new_target_params = jax.tree_multimap(
@@ -26,23 +28,33 @@ def target_update(critic: Model, target_critic: Model, tau: float) -> Model:
 def _update_jit(
     rng: PRNGKey, actor: Model, critic: Model, value: Model,
     target_critic: Model, batch: Batch, discount: float, tau: float,
-    expectile: float, temperature: float
-) -> Tuple[PRNGKey, Model, Model, Model, Model, Model, InfoDict]:
+    expectile: float, temperature: float):
+#-> Tuple[PRNGKey, Model, Model, Model, Model, Model, InfoDict]:
 
+    v_start_time = time.time()
     new_value, value_info = update_v(target_critic, value, batch, expectile)
+    v_end_time = time.time()
+        
     key, rng = jax.random.split(rng)
+
+    actor_start_time = time.time()
     new_actor, actor_info = awr_update_actor(key, actor, target_critic,
                                              new_value, batch, temperature)
+    actor_end_time = time.time()
+    actor_time = actor_end_time - actor_start_time
 
+    q_start_time = time.time()
     new_critic, critic_info = update_q(critic, new_value, batch, discount)
-
     new_target_critic = target_update(new_critic, target_critic, tau)
+    q_end_time = time.time()
+
+    critic_time = v_end_time - v_start_time + q_end_time - q_start_time
 
     return rng, new_actor, new_critic, new_value, new_target_critic, {
         **critic_info,
         **value_info,
         **actor_info
-    }
+    }, actor_time, critic_time
 
 
 class Learner(object):
@@ -123,8 +135,8 @@ class Learner(object):
         actions = np.asarray(actions)
         return np.clip(actions, -1, 1)
 
-    def update(self, batch: Batch) -> InfoDict:
-        new_rng, new_actor, new_critic, new_value, new_target_critic, info = _update_jit(
+    def update(self, batch: Batch): # -> InfoDict:
+        new_rng, new_actor, new_critic, new_value, new_target_critic, info, actor_time, critic_time = _update_jit(
             self.rng, self.actor, self.critic, self.value, self.target_critic,
             batch, self.discount, self.tau, self.expectile, self.temperature)
 
@@ -134,4 +146,4 @@ class Learner(object):
         self.value = new_value
         self.target_critic = new_target_critic
 
-        return info
+        return info, actor_time, critic_time
