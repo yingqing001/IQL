@@ -59,7 +59,12 @@ class Model:
                tx: Optional[optax.GradientTransformation] = None) -> 'Model':
         variables = model_def.init(*inputs)
 
-        _, params = variables.pop('params')
+        #_, params = variables.pop('params')
+        if 'params' in variables:
+            params = variables['params']
+        else:
+            raise KeyError("The 'params' key is not in the variables dictionary. "
+                           "Check the model initialization method.")
 
         if tx is not None:
             opt_state = tx.init(params)
