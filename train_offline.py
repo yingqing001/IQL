@@ -13,6 +13,10 @@ from dataset_utils import D4RLDataset, split_into_trajectories
 from evaluation import evaluate
 from learner import Learner
 
+from utils_sample import parallel_simple_eval_policy
+import time
+import csv
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('env_name', 'halfcheetah-expert-v2', 'Environment name.')
