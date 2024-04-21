@@ -35,7 +35,7 @@ def parallel_simple_eval_policy(policy_fn, env_name, seed, eval_episodes = 20):
         with torch.no_grad():
             actions = policy_fn.sample_actions(states, temperature=0.0)
             #actions = policy_fn(states_tensor).detach().cpu().numpy()
-        device_get()
+        device_get(actions)
         end_time = time.time()
         time_cost += end_time - start_time
         query_times += 1
