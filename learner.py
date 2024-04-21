@@ -34,7 +34,7 @@ def _update_jit(
 
     v_start_time = time.time()
     new_value, value_info = update_v(target_critic, value, batch, expectile)
-    device_get()
+    device_get(new_value)
     v_end_time = time.time()
         
     key, rng = jax.random.split(rng)
@@ -42,14 +42,14 @@ def _update_jit(
     actor_start_time = time.time()
     new_actor, actor_info = awr_update_actor(key, actor, target_critic,
                                              new_value, batch, temperature)
-    device_get()
+    device_get(new_actor)
     actor_end_time = time.time()
     actor_time = actor_end_time - actor_start_time
 
     q_start_time = time.time()
     new_critic, critic_info = update_q(critic, new_value, batch, discount)
     new_target_critic = target_update(new_critic, target_critic, tau)
-    device_get()
+    device_get(new_target_critic)
     q_end_time = time.time()
 
     critic_time = v_end_time - v_start_time + q_end_time - q_start_time
