@@ -121,7 +121,7 @@ def main(_):
         critic_overall_time += critic_time
 
         if i % 20000 == 0:
-            mean, std, time_eval, query_eval = parallel_simple_eval_policy(agent.actor, FLAGS.env_name, seed = 0)
+            mean, std, time_eval, query_eval = parallel_simple_eval_policy(agent, FLAGS.env_name, seed = 0)
             normalized_score.append([mean, std])
             if i >= FLAGS.max_steps:
                 time_eval_record = [['Query times', 'Time'], [query_eval, time_eval]]
